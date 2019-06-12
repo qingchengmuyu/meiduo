@@ -4,6 +4,7 @@ from django.shortcuts import render, redirect
 from django.views import View
 import re
 from .models import User
+from meiduo_mall.utils.response_code import RETCODE
 
 
 
@@ -42,5 +43,20 @@ class RegisterView(View):
         return redirect('/')
 
 
+class UsernameCountView(View):
+    def get(self, request, username):
+        count = User.objects.filter(username=username).count()
+        content = {"count": count, "code": RETCODE.OK, "errmsg": "OK"}
+        return http.JsonResponse(content)
 
-# Create your views here.
+
+class MobilCountView(View):
+    def get(self, request, mobile):
+        count = User.objects.filter(mobile=mobile).count()
+        content = {'count': count, "code": RETCODE.OK, "errmsg": "OK"}
+        return  http.JsonResponse(content)
+
+
+
+
+
