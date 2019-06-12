@@ -9,6 +9,7 @@ from django_redis import get_redis_connection
 from meiduo_mall.libs.captcha.captcha import captcha
 from verifications import contants
 from meiduo_mall.libs.yuntongxun.sms import CCP
+from meiduo_mall.utils.response_code import RETCODE
 
 
 class ImageCodeView(View):
@@ -40,7 +41,7 @@ class SmsCodeView(View):
         print("*" * 50)
         redis_conn.setex('sms_%s' % mobile, contants.SMS_CODE_REDIS_EXPIRES, sms_code)
         CCP().send_template_sms(mobile, [sms_code, contants.SMS_CODE_REDIS_EXPIRES / 60], 1)
-
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '短信验证码发送成功'})
 
 
 

@@ -5,6 +5,7 @@ from django.views import View
 import re
 from .models import User
 from meiduo_mall.utils.response_code import RETCODE
+from django_redis import get_redis_connection
 
 
 
@@ -20,8 +21,14 @@ class RegisterView(View):
         mobile = request.POST.get("mobile")
         sms_code = request.POST.get("sms_code")
         allow = request.POST.get("allow")
+        redis_conn = get_redis_connection("verify_code")
+        sms_code_server = redis_conn.get('sms_%s' % mobile)
+        if sms_code_server is None:
+            return http.HttpResponseForbidden('验证码已过期')
+        redis_conn.delete('sms_%s' % mobile)
+        sms_code_server = sms_code_server.decode()
 
-        if all([username, password, mobile, allow]) is False:
+        if all([username, password, mobile, sms_code, allow]) is False:
             return http.HttpResponseForbidden("缺少必要的参数")
         if not re.match(r'^[a-zA-Z0-9_-]{5,20}$', username):
             return http.HttpResponseForbidden('请输入5-20个字符的用户名')
@@ -36,6 +43,9 @@ class RegisterView(View):
             return http.HttpResponseForbidden("两次密码不一致")
         if not re.match(r'1[3-9]\d{9}$', mobile):
             return http.HttpResponseForbidden('请输入11位手机号')
+        if sms_code != sms_code_server:
+            return http.HttpResponseForbidden('验证码错误')
+
 
         user = User.objects.create_user(username=username, password=password, mobile=mobile)
 
