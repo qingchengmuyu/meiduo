@@ -24,6 +24,10 @@ class SmsCodeView(View):
     def get(self, request, mobile):
         redis_conn = get_redis_connection('verify_code')
 
+        sms_logo = redis_conn.get("sms_logo_%s" % mobile)
+        if sms_logo:
+            return http.JsonResponse({'code': RETCODE.THROTTLINGERR, 'errmsg': "频繁发送短信"})
+
         image_code_client = request.GET.get("image_code")
         uuid = request.GET.get("uuid")
         if all([image_code_client, uuid]) is False:
@@ -36,6 +40,7 @@ class SmsCodeView(View):
         if image_code_client.lower() != image_code_server.lower():
             return http.HttpResponseForbidden('图形验证码错误')
         sms_code = '%06d' % randint(0, 999999)
+        redis_conn.setex('sms_logo_%s' % mobile, 60, 1)
         print("*" * 50)
         print(sms_code)
         print("*" * 50)
