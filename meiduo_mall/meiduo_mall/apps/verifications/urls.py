@@ -14,12 +14,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include('blog.urls'))
 """
 from django.conf.urls import url, include
-from django.contrib import admin
+from verifications.views import ImageCodeView
 
 urlpatterns = [
-    url(r'^admin/', admin.site.urls),
-    url(r'^', include('users.urls', namespace='users')),
-    url(r'^', include('contents.urls', namespace='content')),
-    url(r'^', include('verifications.urls', namespace='verifications')),
+    url(r'^image_codes/(?P<uuid>[\w-]+)/$', ImageCodeView.as_view())
 
 ]
