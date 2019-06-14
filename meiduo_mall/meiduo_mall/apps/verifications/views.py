@@ -40,11 +40,18 @@ class SmsCodeView(View):
         if image_code_client.lower() != image_code_server.lower():
             return http.HttpResponseForbidden('图形验证码错误')
         sms_code = '%06d' % randint(0, 999999)
-        redis_conn.setex('sms_logo_%s' % mobile, 60, 1)
+        pl = redis_conn.pipeline()
+        # redis_conn.setex('sms_logo_%s' % mobile, 60, 1)
+        pl.setex('sms_logo_%s' % mobile, 60, 1)
         print("*" * 50)
         print(sms_code)
         print("*" * 50)
-        redis_conn.setex('sms_%s' % mobile, contants.SMS_CODE_REDIS_EXPIRES, sms_code)
+
+        # redis_conn.setex('sms_%s' % mobile, contants.SMS_CODE_REDIS_EXPIRES, sms_code)
+        pl.setex('sms_%s' % mobile, contants.SMS_CODE_REDIS_EXPIRES, sms_code)
+
+        pl.execute()
+
         CCP().send_template_sms(mobile, [sms_code, contants.SMS_CODE_REDIS_EXPIRES / 60], 1)
         return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '短信验证码发送成功'})
 
