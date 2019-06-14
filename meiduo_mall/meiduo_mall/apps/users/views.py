@@ -1,5 +1,5 @@
 from django import http
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate
 from django.shortcuts import render, redirect
 from django.views import View
 import re
@@ -66,6 +66,24 @@ class MobileCountView(View):
         content = {'count': count, "code": RETCODE.OK, "errmsg": "OK"}
         return  http.JsonResponse(content)
 
+
+class LoginView(View):
+
+    def get(self, request):
+        return render(request, 'login.html')
+
+    def post(self, request):
+        query_dist = request.POST
+        username = query_dist.get('username')
+        password = query_dist.get('password')
+        remembered = query_dist.get('remembered')
+        user = authenticate(request, username=username, password=password)
+        if user is None:
+            return render(request, 'login.html', {'account_errmsg': "账号或密码错误"})
+        login(request, user)
+        if remembered is None:
+            request.session.set_expiry(0)
+        return redirect('/')
 
 
 
