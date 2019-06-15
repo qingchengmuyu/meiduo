@@ -1,5 +1,6 @@
 from django import http
-from django.contrib.auth import login, authenticate
+from django.conf import settings
+from django.contrib.auth import login, authenticate, logout
 from django.shortcuts import render, redirect
 from django.views import View
 import re
@@ -46,11 +47,13 @@ class RegisterView(View):
         if sms_code != sms_code_server:
             return http.HttpResponseForbidden('验证码错误')
 
-
         user = User.objects.create_user(username=username, password=password, mobile=mobile)
 
         login(request, user)
-        return redirect('/')
+
+        response = redirect('/')
+        response.set_cookie('username', user.username, max_age=settings.SESSION_COOKIE_AGE)
+        return response
 
 
 class UsernameCountView(View):
@@ -64,7 +67,7 @@ class MobileCountView(View):
     def get(self, request, mobile):
         count = User.objects.filter(mobile=mobile).count()
         content = {'count': count, "code": RETCODE.OK, "errmsg": "OK"}
-        return  http.JsonResponse(content)
+        return http.JsonResponse(content)
 
 
 class LoginView(View):
@@ -83,7 +86,17 @@ class LoginView(View):
         login(request, user)
         if remembered is None:
             request.session.set_expiry(0)
-        return redirect('/')
+        response = redirect(request.GET.get('next', '/'))
+        response.set_cookie('username', user.username, max_age=(settings.SESSION_COOKIE_AGE if remembered else None))
+        return response
+
+
+class LogoutView(View):
+    def get(self, request):
+        logout(request)
+        response = redirect('/login/')
+        response.delete_cookie('username')
+        return response
 
 
 
