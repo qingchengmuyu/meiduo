@@ -83,6 +83,10 @@ class LoginView(View):
         username = query_dist.get('username')
         password = query_dist.get('password')
         remembered = query_dist.get('remembered')
+        # 实现手机号登陆
+        if re.match(r'^1[3-9]\d{9}$', username):
+            User.USERNAME_FIELD = 'mobile'
+
         user = authenticate(request, username=username, password=password)
         if user is None:
             return render(request, 'login.html', {'account_errmsg': "账号或密码错误"})
