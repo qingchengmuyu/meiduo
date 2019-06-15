@@ -1,7 +1,10 @@
 from django import http
 from django.conf import settings
 from django.contrib.auth import login, authenticate, logout
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
+from django.contrib.auth import mixins
+from django.utils.decorators import method_decorator
 from django.views import View
 import re
 from .models import User
@@ -99,5 +102,30 @@ class LogoutView(View):
         return response
 
 
+# class InfoView(View):
+#     """个人中心"""
+#     def get(self, request):
+#         user = request.user
+#         if user.is_authenticated:
+#             return render(request, 'user_center_info.html')
+#         else:
+#             return redirect('/login/?next=/info/')
 
 
+# class InfoView(View):
+#     @method_decorator(login_required)
+#     def get(self, request):
+#         return render(request, 'user_center_info.html')
+
+#
+# class InfoView(View):
+#     """展示用户中心"""
+#     @method_decorator(login_required)
+#     def get(self, request):
+#         # 判断用户是否登录, 如果登录显示个人中心界面
+#         return render(request, 'user_center_info.html')
+
+
+class InfoView(mixins.LoginRequiredMixin, View):
+    def get(self, request):
+        return render(request, 'user_center_info.html')
