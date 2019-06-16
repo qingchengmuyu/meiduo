@@ -20,6 +20,7 @@ urlpatterns = [
     # url(r'^admin/', admin.site.urls),
     # url(r'^$', views.IndexView.as_view()),
     url(r"^qq/authorization/$", views.QQAuthURLView.as_view()),
+    url(r"^oauth_callback/$", views.QQAuthView.as_view()),
 
 
 ]
