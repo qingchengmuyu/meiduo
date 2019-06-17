@@ -3,8 +3,11 @@ from django.conf import settings
 
 
 def generate_openid_signature(openid):
+    # serializer = Serializer(settings.SECRET_KEY, 600)
     serializer = Serializer(settings.SECRET_KEY, 600)
+
     data = {'openid': openid}
+
     openid_sign_bytes = serializer.dumps(data)
     return openid_sign_bytes.decode()
 

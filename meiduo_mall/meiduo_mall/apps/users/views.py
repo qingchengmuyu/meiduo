@@ -1,3 +1,5 @@
+import json
+
 from django import http
 from django.conf import settings
 from django.contrib.auth import login, authenticate, logout
@@ -7,10 +9,14 @@ from django.contrib.auth import mixins
 from django.utils.decorators import method_decorator
 from django.views import View
 import re
+from django.core.mail import send_mail
+
 from .models import User
 from meiduo_mall.utils.response_code import RETCODE
 from django_redis import get_redis_connection
-
+from meiduo_mall.utils.views import LoginRequiredViews
+from .utils import generate_verify_email_url, check_verify_email_token
+from celery_tasks.email.tasks import send_verify_email
 
 
 class RegisterView(View):
@@ -27,6 +33,7 @@ class RegisterView(View):
         allow = request.POST.get("allow")
         redis_conn = get_redis_connection("verify_code")
         sms_code_server = redis_conn.get('sms_%s' % mobile)
+
         if sms_code_server is None:
             return http.HttpResponseForbidden('验证码已过期')
         redis_conn.delete('sms_%s' % mobile)
@@ -60,6 +67,7 @@ class RegisterView(View):
 
 
 class UsernameCountView(View):
+
     def get(self, request, username):
         count = User.objects.filter(username=username).count()
         content = {"count": count, "code": RETCODE.OK, "errmsg": "OK"}
@@ -133,3 +141,38 @@ class LogoutView(View):
 class InfoView(mixins.LoginRequiredMixin, View):
     def get(self, request):
         return render(request, 'user_center_info.html')
+
+
+class EmailView(LoginRequiredViews):
+    def put(self, request):
+        json_str = request.body.decode()
+        json_dict = json.loads(json_str)
+        email = json_dict.get('email')
+        if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+            return http.HttpResponseForbidden('邮箱格式错误')
+        user = request.user
+        user.email = email
+        user.save()
+        verify_url = generate_verify_email_url(user)
+        print('verify_url:', verify_url)
+
+        send_verify_email(email, verify_url)
+        print('邮件异步发送')
+
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '添加邮箱成功'})
+
+
+class EmailVerificationView(View):
+    """验证账户"""
+    def get(self, request):
+        token = request.GET.get('token')
+        if token is None:
+            return http.HttpResponseForbidden('缺少token参数')
+        user = check_verify_email_token(token)
+        if user is None:
+            return http.HttpResponseForbidden('token无效')
+        user.email_active = True
+        user.save()
+
+        return redirect('/info/')
+

@@ -1,5 +1,4 @@
 import re
-
 from django import http
 from django.contrib.auth import login
 from django.shortcuts import render, redirect
@@ -101,11 +100,7 @@ class QQAuthView(View):
         response = redirect(request.GET.get('next', '/'))
         response.set_cookie('username',user.username, max_age=settings.SESSION_COOKIE_AGE)
         return response
-
-
-
         login(request, user)
-
         response = redirect('/')
         response.set_cookie('username', user.username, max_age=settings.SESSION_COOKIE_AGE)
         return response
