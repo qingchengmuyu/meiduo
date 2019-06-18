@@ -11,7 +11,7 @@ from django.views import View
 import re
 from django.core.mail import send_mail
 
-from .models import User
+from .models import User, Address
 from meiduo_mall.utils.response_code import RETCODE
 from django_redis import get_redis_connection
 from meiduo_mall.utils.views import LoginRequiredViews
@@ -24,7 +24,7 @@ class RegisterView(View):
     def get(self, request):
         return render(request, 'register.html')
 
-    def post(self,request):
+    def post(self, request):
         username = request.POST.get("username")
         password = request.POST.get("password")
         password2 = request.POST.get("password2")
@@ -164,6 +164,7 @@ class EmailView(LoginRequiredViews):
 
 class EmailVerificationView(View):
     """验证账户"""
+
     def get(self, request):
         token = request.GET.get('token')
         if token is None:
@@ -180,3 +181,68 @@ class EmailVerificationView(View):
 class AddressView(LoginRequiredViews):
     def get(self, request):
         return render(request, 'user_center_site.html')
+
+
+class CreateAddressView(LoginRequiredViews):
+    """新增收货地址"""
+
+    def post(self, request):
+        count = Address.objects.filter(user=request.user, is_deleted=False).count()
+        if count >= 20:
+            return http.JsonResponse({'code': RETCODE.THROTTLINGERR, 'errmsg': '收货地址数量超过上限'})
+        json_dict = json.loads(request.body.decode())
+
+        title = json_dict.get('title')
+        receiver = json_dict.get('receiver')
+        province_id = json_dict.get('province_id')
+        city_id = json_dict.get('city_id')
+        district_id = json_dict.get('district_id')
+        place = json_dict.get('place')
+        mobile = json_dict.get('mobile')
+        tel = json_dict.get('tel')
+        email = json_dict.get('email')
+
+        if all([title, receiver, province_id, city_id, district_id, place, mobile]) is False:
+            return http.HttpResponseForbidden('参数不足')
+        if not re.match(r'1[3-9]\d{9}', mobile):
+            return http.HttpResponseForbidden('手机号格式错误')
+        if tel:
+            if not re.match(r'^(0[0-9]{2,3}-)?([2-9][0-9]{6,7})+(-[0-9]{1,4})?$', tel):
+                return http.HttpResponseForbidden('参数tel有误')
+        if email:
+            if not re.match(r'^[a-z0-9][\w\.\-]*@[a-z0-9\-]+(\.[a-z]{2,5}){1,2}$', email):
+                return http.HttpResponseForbidden('参数email有误')
+        address_model = Address.objects.create(
+            user=request.user,
+            title=title,
+            receiver=receiver,
+            province_id=province_id,
+            city_id=city_id,
+            district_id=district_id,
+            place=place,
+            mobile=mobile,
+            tel=tel,
+            email=email
+        )
+        if request.user.default_address is None:
+            request.user.default_address = address_model
+            request.user.save()
+
+        address_dict = {
+            'id': address_model.id,
+            'title': address_model.title,
+            'receiver': address_model.receiver,
+            'province_id': address_model.province_id,
+            'province': address_model.province.name,
+            'city_id': address_model.city_id,
+            'city': address_model.city.name,
+            'district_id': address_model.district_id,
+            'district': address_model.district.name,
+            'place': address_model.place,
+            'mobile': address_model.mobile,
+            'tel': address_model.tel,
+            'email': address_model.email
+        }
+
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': "添加收货地址成功", 'address': address_dict})
+
