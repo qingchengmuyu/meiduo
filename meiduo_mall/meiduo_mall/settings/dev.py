@@ -43,8 +43,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # 'meiduo_mall.apps.users',
-    'users',
-    'oauth'
+    'users.apps.UsersConfig',
+    'oauth.apps.OauthConfig',
+    'areas.apps.AreasConfig',
 ]
 
 MIDDLEWARE = [
