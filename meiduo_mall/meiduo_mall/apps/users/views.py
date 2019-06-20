@@ -413,5 +413,5 @@ class ChangePasswordView(LoginRequiredViews):
         user.set_password(new_pwd)
         user.save()
         return redirect('/logout/')
-    
+
 
