@@ -28,5 +28,10 @@ urlpatterns = [
     url(r'^addresses/$', views.AddressView.as_view()),
     url(r'^addresses/create/$', views.CreateAddressView.as_view()),
     url(r'^addresses/(?P<address_id>\d+)/$', views.UpdateDestroyAddressView.as_view()),
+    url(r'^addresses/(?P<address_id>\d+)/title/$', views.UpdateAddressTitleView.as_view()),
+    url(r'^addresses/(?P<address_id>\d+)/default/$', views.DefaultAddressView.as_view()),
+    url(r'^password/$', views.ChangePasswordView.as_view()),
+
+
 ]
 
