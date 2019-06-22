@@ -88,10 +88,12 @@
 
     <div class="pos_center_con clearfix">
         <ul class="slide">
-            <li><a href="#"><img src="../static/images/slide01.jpg" alt="幻灯片01"></a></li>
-{#            <li><a href="#"><img src="../static/images/slide02.jpg" alt="幻灯片02"></a></li>#}
-{#            <li><a href="#"><img src="../static/images/slide03.jpg" alt="幻灯片03"></a></li>#}
-{#            <li><a href="#"><img src="../static/images/slide04.jpg" alt="幻灯片04"></a></li>#}
+            {% for content in contents.index_lbt %}
+                <li><a href="{{ content.url }}"><img src="{{ content.image.url }}" alt="{{ content.title }}"></a></li>
+                {#            <li><a href="#"><img src="../static/images/slide02.jpg" alt="幻灯片02"></a></li>#}
+                {#            <li><a href="#"><img src="../static/images/slide03.jpg" alt="幻灯片03"></a></li>#}
+                {#            <li><a href="#"><img src="../static/images/slide04.jpg" alt="幻灯片04"></a></li>#}
+            {% endfor %}
         </ul>
         <div class="prev"></div>
         <div class="next"></div>

@@ -12,7 +12,6 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 
 import os, sys
 
-
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # print(BASE_DIR)
@@ -31,7 +30,6 @@ SECRET_KEY = '-u2%v)w!s!e%tu=*n1kf80y6uj+49wzkp@y1k!z9o#@ohu%i4y'
 DEBUG = True
 
 ALLOWED_HOSTS = ["www.meiduo.site", '0.0.0.0', '127.0.0.1']
-
 
 # Application definition
 
@@ -99,7 +97,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'meiduo_mall.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/1.11/ref/settings/#databases
 
@@ -113,15 +110,14 @@ WSGI_APPLICATION = 'meiduo_mall.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql', # 数据库引擎
-        'HOST': '127.0.0.1', # 数据库主机
-        'PORT': 3306, # 数据库端口
-        'USER': 'root', # 数据库用户名
-        'PASSWORD': 'mysql', # 数据库用户密码
-        'NAME': 'meiduo_mall' # 数据库名字
+        'ENGINE': 'django.db.backends.mysql',  # 数据库引擎
+        'HOST': '127.0.0.1',  # 数据库主机
+        'PORT': 3306,  # 数据库端口
+        'USER': 'root',  # 数据库用户名
+        'PASSWORD': 'mysql',  # 数据库用户密码
+        'NAME': 'meiduo_mall'  # 数据库名字
     },
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/1.11/ref/settings/#auth-password-validators
@@ -141,7 +137,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/1.11/topics/i18n/
 
@@ -155,42 +150,37 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.11/howto/static-files/
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
-
-
-
 CACHES = {
-    "default": { # 默认
+    "default": {  # 默认
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": "redis://127.0.0.1:6379/0",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     },
-    "session": { # session
+    "session": {  # session
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": "redis://127.0.0.1:6379/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
         }
     },
-    "verify_code": { # 图形验证码
-            "BACKEND": "django_redis.cache.RedisCache",
-            "LOCATION": "redis://127.0.0.1:6379/2",
-            "OPTIONS": {
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            }
-        },
+    "verify_code": {  # 图形验证码
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379/2",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
 }
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "session"
-
 
 LOGGING = {
     'version': 1,
@@ -233,17 +223,13 @@ LOGGING = {
     }
 }
 
-
 AUTH_USER_MODEL = 'users.User'
 LOGIN_URL = '/login/'
-
-
 
 # QQ登录配置
 QQ_CLIENT_ID = '101518219'
 QQ_CLIENT_SECRET = '418d84ebdc7241efb79536886ae95224'
 QQ_REDIRECT_URI = 'http://www.meiduo.site:8000/oauth_callback'
-
 
 # 邮箱配置
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # 指定邮件后端
@@ -253,6 +239,7 @@ EMAIL_HOST_USER = 'itcast99@163.com'  # 授权的邮箱
 EMAIL_HOST_PASSWORD = 'python99'  # 邮箱授权时获得的密码，非注册登录密码
 EMAIL_FROM = '美多商城<itcast99@163.com>'  # 发件人抬头
 
-
 # 邮箱验证
 EMAIL_VERIFY_URL = 'http://www.meiduo.site:8000/emails/verification/'
+# 设置自定义文件存储类
+DEFAULT_FILE_STORAGE = 'meiduo_mall.utils.fastdfs.fdfs_storage.FastDFSStorage'
