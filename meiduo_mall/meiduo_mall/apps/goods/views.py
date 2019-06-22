@@ -6,6 +6,7 @@ from django.core.paginator import Paginator, EmptyPage
 from .models import GoodsCategory
 from contents.utils import get_categories
 from .utils import get_breadcrumb
+from meiduo_mall.utils.response_code import RETCODE
 
 
 class LastView(View):
@@ -41,3 +42,22 @@ class LastView(View):
 
         return render(request, 'list.html', context)
 
+
+class HotGoodsView(View):
+    """商品热销排序"""
+
+    def get(self, request, category_id):
+        try:
+            cat3 = GoodsCategory.objects.get(id=category_id)
+        except GoodsCategory.DoesNotExist:
+            return http.HttpResponseForbidden("category_id不存在")
+        sku_qs = cat3.sku_set.filter(is_launched=True).order_by('-sales')[:2]
+        sku_list = []
+        for sku_model in sku_qs:
+            sku_list.append({
+                'id': sku_model.id,
+                'name': sku_model.name,
+                'price': sku_model.price,
+                'default_image_url': sku_model.default_image.url
+            })
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': "ok", 'hot_skus': sku_list})
