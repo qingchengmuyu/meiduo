@@ -17,6 +17,7 @@ from django_redis import get_redis_connection
 from meiduo_mall.utils.views import LoginRequiredViews
 from .utils import generate_verify_email_url, check_verify_email_token
 from celery_tasks.email.tasks import send_verify_email
+from goods.models import SKU
 
 
 class RegisterView(View):
@@ -392,7 +393,8 @@ class DefaultAddressView(LoginRequiredViews):
 
 class ChangePasswordView(LoginRequiredViews):
     """修改用户密码"""
-    def get(self,request):
+
+    def get(self, request):
         return render(request, 'user_center_pass.html')
 
     def post(self, request):
@@ -414,4 +416,46 @@ class ChangePasswordView(LoginRequiredViews):
         user.save()
         return redirect('/logout/')
 
+
+class UserBrowseHistory(View):
+    """商品浏览记录"""
+
+    def post(self, request):
+        if request.user.is_authenticated:
+            json_dict = json.loads(request.body.decode())
+            sku_id = json_dict.get('sku_id')
+            try:
+                sku = SKU.objects.get(id=sku_id)
+            except SKU.DoesNotExist:
+                return http.HttpResponseForbidden("sku_id不存在")
+            redis_conn = get_redis_connection('history')
+            pl = redis_conn.pipeline()
+            user = request.user
+            key = 'history_%s' % user.id
+            pl.lrem(key, 0, sku_id)
+            pl.lpush(key, sku_id)
+            pl.ltrim(key, 0, 4)
+            pl.execute()
+            return http.JsonResponse({'code': RETCODE.OK, 'errmsg': "OK"})
+        else:
+            return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '用户未登录'})
+
+    def get(self, request):
+        """查询商品浏览记录"""
+
+        if request.user.is_authenticated:
+            redis_conn = get_redis_connection('history')
+            sku_ids = redis_conn.lrange('history_%s' % request.user.id, 0, -1)
+            sku_list = []
+            for sku_id in sku_ids:
+                sku = SKU.objects.get(id=sku_id)
+                sku_list.append({
+                    'id': sku.id,
+                    'name': sku.name,
+                    'default_image_url': sku.default_image.url,
+                    'price': sku.price
+                })
+            return http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK', 'skus': sku_list})
+        else:
+            return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '未登录用户', 'skus': []})
 
