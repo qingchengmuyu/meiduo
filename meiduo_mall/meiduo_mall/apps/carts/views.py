@@ -65,5 +65,33 @@ class CartsView(View):
 
     def get(self, request):
         """购物车数据展示"""
-
-        return render(request, 'cart.html')
+        user = request.user
+        if user.is_authenticated:
+            redis_conn = get_redis_connection("carts")
+            redis_carts = redis_conn.hgetall('carts_%s' % user.id)
+            selected_ids = redis_conn.smembers('selected_%s' % user.id)
+            cart_dict = {}
+            for sku_id_bytes in redis_carts:
+                cart_dict[int(sku_id_bytes)] = {
+                    'count': int(redis_carts[sku_id_bytes]),
+                    'selected': sku_id_bytes in selected_ids
+                }
+        else:
+            cat_str = request.COOKIES.get('carts')
+            if cat_str:
+                cart_dict = pickle.loads(base64.b64decode(cat_str.encode()))
+            else:
+                return render(request, 'cart.html')
+        sku_qs = SKU.objects.filter(id__in=cart_dict.keys())
+        cart_skus = []
+        for sku in sku_qs:
+            cart_skus.append({
+                'id': sku.id,
+                'name': sku.name,
+                'default_image_url': sku.default_image.url,
+                'price': str(sku.price),
+                'count': cart_dict[sku.id]['count'],
+                'selected': str(cart_dict[sku.id]['selected']),
+                'amount': str(sku.price * cart_dict[sku.id]['count'])
+            })
+        return render(request, 'cart.html', {'cart_skus': cart_skus})
