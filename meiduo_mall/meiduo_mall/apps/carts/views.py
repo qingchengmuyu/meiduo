@@ -95,3 +95,118 @@ class CartsView(View):
                 'amount': str(sku.price * cart_dict[sku.id]['count'])
             })
         return render(request, 'cart.html', {'cart_skus': cart_skus})
+
+    def put(self, request):
+        """修改购物车逻辑"""
+        json_dict = json.loads(request.body.decode())
+        sku_id = json_dict.get('sku_id')
+        count = json_dict.get('count')
+        selected = json_dict.get('selected')
+        if all([sku_id, ]) is False:
+            return http.HttpResponseForbidden('缺少必传参数')
+        try:
+            sku = SKU.objects.get(id=sku_id)
+        except SKU.DoesNotExist:
+            return http.HttpResponseForbidden('sku_id错误')
+        try:
+            count = int(count)
+        except Exception:
+            return http.HttpResponseForbidden('参数错误')
+        if count < 0 or isinstance(selected, bool) is False:
+            return http.HttpResponseForbidden('参数类型错误')
+        user = request.user
+        cart_skus = {
+            'id': sku.id,
+            'name': sku.name,
+            'default_image_url': sku.default_image.url,
+            'price': str(sku.price),
+            'count': count,
+            'selected': selected,
+            'amount': str(sku.price * count)
+        }
+        response = http.HttpResponse({'code': RETCODE.OK, 'errmsg': '修改购物车数据成功', 'cart_skus': cart_skus})
+        if user.is_authenticated:
+            redis_conn = get_redis_connection('carts')
+            pl = redis_conn.pipeline()
+            pl.hset('carts_%s' % user.id, sku_id, count)
+            if selected:
+                pl.sadd('selected_%s' % user.id, sku_id)
+            else:
+                pl.srem('selected_%s' % user.id, sku_id)
+            pl.execute()
+        else:
+            cart_str = request.COOKIES.get('carts')
+            if cart_str:
+                cart_dict = pickle.loads(base64.b64decode(cart_str.encode()))
+            else:
+                return render(request, 'cart.html')
+            cart_dict[sku_id] = {
+                'count': count,
+                'selected': selected
+            }
+            cart_str = base64.b64encode(pickle.dumps(cart_dict)).decode()
+            response.set_cookie('carts', cart_str)
+        return response
+
+    def delete(self, request):
+        """删除购物车数据"""
+        json_dict = json.loads(request.body.decode())
+        sku_id = json_dict.get('sku_id')
+        try:
+            sku = SKU.objects.get(id=sku_id)
+        except SKU.DoesNotExist:
+            return http.HttpResponseForbidden('sku_id不存在')
+        user = request.user
+        if user.is_authenticated:
+            redis_conn = get_redis_connection('carts')
+            pl = redis_conn.pipeline()
+            pl.hdel('carts_%s' % user.id, sku_id)
+            pl.srem('selected_%s' % user.id, sku_id)
+            pl.execute()
+            return http.JsonResponse({'code': RETCODE.OK, 'errmsg': "删除购物车成功"})
+        else:
+            cart_str = request.COOKIES.get('carts')
+            if cart_str:
+                cart_dict = pickle.loads(base64.b64decode(cart_str.encode()))
+            else:
+                return http.HttpResponseForbidden('缺少cookie')
+            if sku_id in cart_dict:
+                del cart_dict[sku_id]
+            response = http.HttpResponse({'code': RETCODE.OK, 'errmsg': '删除购物车成功'})
+            if not cart_dict:
+                response.delete_cookie('carts')
+                return response
+            cart_str = base64.b64encode(pickle.dumps(cart_dict)).decode()
+            response.set_cookie('carts', cart_str)
+            return response
+
+
+class CartsSelectedAllView(View):
+    """购物车全选"""
+
+    def put(self, request):
+        json_dict = json.loads(request.body.decode())
+        selected = json_dict.get('selected')
+        if isinstance(selected, bool) is False:
+            return http.HttpResponseForbidden("参数类型错误")
+        user = request.user
+        if user.is_authenticated:
+            redise_conn = get_redis_connection('carts')
+            redis_carts = redise_conn.hgetall('carts_%s' % user.id)
+            if selected:
+                redise_conn.sadd('selected_%s' % user.id, *redis_carts.keys())
+            else:
+                redise_conn.delete('selected_%s' % user.id)
+            return http.JsonResponse({'code': RETCODE.OK, 'errmsg': "ok"})
+        else:
+            cart_str = request.COOKIES.get('carts')
+            if cart_str:
+                cart_dict = pickle.loads(base64.b64decode(cart_str.encode()))
+            else:
+                return http.HttpResponseForbidden("cookie没有获取到")
+            for sku_dict in cart_dict.values():
+                sku_dict['selected'] = selected
+            cart_str = base64.b64encode(pickle.dumps(cart_dict)).decode()
+            response = http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK'})
+            response.set_cookie('carts', cart_str)
+            return response
