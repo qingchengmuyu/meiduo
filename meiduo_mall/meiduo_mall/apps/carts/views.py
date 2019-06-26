@@ -210,3 +210,38 @@ class CartsSelectedAllView(View):
             response = http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK'})
             response.set_cookie('carts', cart_str)
             return response
+
+
+class CartsSimpleView(View):
+    """mini版购物车展示"""
+
+    def get(self, request):
+        user = request.user
+        if user.is_authenticated:
+            redis_conn = get_redis_connection('carts')
+            redis_carts = redis_conn.hgetall('carts_%s' % user.id)
+            selected_ids = redis_conn.smembers('selected_%s' % user.id)
+            cart_dict = {}
+            for sku_id_bytes in redis_carts:
+                cart_dict[int(sku_id_bytes)] = {
+                    'count': int(redis_carts[sku_id_bytes]),
+                    'selected': sku_id_bytes in selected_ids
+                }
+
+        else:
+            cart_str = request.COOKIES.get('carts')
+            if cart_str:
+                cart_dict = pickle.loads(base64.b64decode(cart_str.encode()))
+            else:
+                return http.JsonResponse({'code':RETCODE.NODATAERR, 'errmsg': '没有数据', 'cart_skus': []})
+        sku_qs = SKU.objects.filter(id__in=cart_dict.keys())
+        cart_skus = []
+        for sku in sku_qs:
+            cart_skus.append({
+                'id': sku.id,
+                'name': sku.name,
+                'default_image_url': sku.default_image.url,
+                'count': cart_dict[sku.id]['count'],
+            })
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK', 'cart_skus': cart_skus})
+
