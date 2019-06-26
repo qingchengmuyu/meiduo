@@ -12,7 +12,7 @@ from meiduo_mall.utils.response_code import RETCODE
 from .models import OAuthQQUser
 from .utils import generate_openid_signature, check_openid_signature
 from users.models import User
-
+from carts.utils import merge_cart_cookie_to_redis
 
 logger = logging.getLogger('django')
 
@@ -30,6 +30,7 @@ class QQAuthURLView(View):
 
 class QQAuthView(View):
     """QQ登陆成功后的回调处理"""
+
     def get(self, request):
         code = request.GET.get('code')
         if code is None:
@@ -98,18 +99,10 @@ class QQAuthView(View):
         OAuthQQUser.objects.create(openid=openid, user=user)
         login(request, user)
         response = redirect(request.GET.get('next', '/'))
-        response.set_cookie('username',user.username, max_age=settings.SESSION_COOKIE_AGE)
+        response.set_cookie('username', user.username, max_age=settings.SESSION_COOKIE_AGE)
         return response
         login(request, user)
         response = redirect('/')
         response.set_cookie('username', user.username, max_age=settings.SESSION_COOKIE_AGE)
+        merge_cart_cookie_to_redis(request, response)
         return response
-
-
-
-
-
-
-
-
-

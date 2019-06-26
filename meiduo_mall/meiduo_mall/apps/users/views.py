@@ -18,6 +18,7 @@ from meiduo_mall.utils.views import LoginRequiredViews
 from .utils import generate_verify_email_url, check_verify_email_token
 from celery_tasks.email.tasks import send_verify_email
 from goods.models import SKU
+from carts.utils import merge_cart_cookie_to_redis
 
 
 class RegisterView(View):
@@ -104,6 +105,7 @@ class LoginView(View):
             request.session.set_expiry(0)
         response = redirect(request.GET.get('next', '/'))
         response.set_cookie('username', user.username, max_age=(settings.SESSION_COOKIE_AGE if remembered else None))
+        merge_cart_cookie_to_redis(request, response)
         return response
 
 
@@ -458,4 +460,3 @@ class UserBrowseHistory(View):
             return http.JsonResponse({'code': RETCODE.OK, 'errmsg': 'OK', 'skus': sku_list})
         else:
             return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '未登录用户', 'skus': []})
-
