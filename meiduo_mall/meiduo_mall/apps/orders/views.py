@@ -94,8 +94,8 @@ class OrderCommitView(LoginRequiredViews):
                         buy_count = cart_dict[sku_id]
                         origin_stock = sku.stock
                         origin_sales = sku.sales
-                        import time
-                        time.sleep(5)
+                        # import time
+                        # time.sleep(5)
                         if buy_count > origin_stock:
                             transaction.savepoint_rollback(save_point)
 
@@ -131,5 +131,29 @@ class OrderCommitView(LoginRequiredViews):
                 return http.JsonResponse({'code': RETCODE.OK, 'errmsg': "下单失败"})
             else:
                 transaction.savepoint_commit(save_point)
+        pl = redis_conn.pipeline()
+        pl.hdel("carts_%s" % user.id, *selected_ids)
+        pl.delete('selected_%s' % user.id)
+        pl.execute()
 
         return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '下单成功', 'order_id': order_id})
+
+
+class OrderSuccessView(LoginRequiredViews):
+    """提交订单成功后的界面"""
+
+    def get(self, request):
+        order_id = request.GET.get('order_id')
+        payment_amount = request.GET.get('payment_amount')
+        pay_method = request.GET.get('pay_method')
+        try:
+            OrderInfo.objects.get(order_id=order_id, pay_method=pay_method, total_amount=payment_amount,
+                                  user=request.user)
+        except OrderInfo.DoesNotExist:
+            return http.HttpResponseForbidden('订单有误')
+        context = {
+            'payment_amount': payment_amount,
+            'order_id': order_id,
+            'pay_method': pay_method
+        }
+        return render(request, 'order_success.html', context)

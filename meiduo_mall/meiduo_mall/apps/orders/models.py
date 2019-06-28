@@ -5,7 +5,7 @@ from meiduo_mall.utils.models import BaseModel
 class OrderInfo(BaseModel):
     """订单信息"""
     PAY_METHODS_ENUM = {
-        "CASH": 1,
+        "CASH": '1',
         "ALIPAY": 2
     }
     PAY_METHOD_CHOICES = (
