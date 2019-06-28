@@ -4,6 +4,7 @@ from decimal import Decimal
 from django import http
 from django.shortcuts import render
 from django_redis import get_redis_connection
+from django.db import transaction
 
 from meiduo_mall.utils.views import LoginRequiredViews
 from users.models import Address
@@ -66,50 +67,69 @@ class OrderCommitView(LoginRequiredViews):
         status = (OrderInfo.ORDER_STATUS_ENUM['UNPAID']
                   if pay_method == OrderInfo.PAY_METHODS_ENUM['ALIPAY']
                   else OrderInfo.ORDER_STATUS_ENUM['UNSEND'])
-        try:
-            order_model = OrderInfo.objects.create(
-                order_id=order_id,
-                user=user,
-                address_id=address_id,
-                total_count=0,
-                total_amount=Decimal('0.00'),
-                freight=Decimal('10.00'),
-                pay_method=pay_method,
-                status=status
-            )
-            redis_conn = get_redis_connection('carts')
-            redis_carts = redis_conn.hgetall('carts_%s' % user.id)
-            selected_ids = redis_conn.smembers('selected_%s' % user.id)
-            cart_dict = {}
-            for sku_id_bytes in selected_ids:
-                cart_dict[int(sku_id_bytes)] = int(redis_carts[sku_id_bytes])
-            for sku_id in cart_dict:
-                sku = SKU.objects.get(id=sku_id)
-                buy_count = cart_dict[sku_id]
-                origin_stock = sku.stock
-                origin_sales = sku.sales
-                if buy_count > origin_stock:
 
-                    return http.JsonResponse({'code': RETCODE.STOCKERR, 'errmsg': '库存不足'})
-                new_stock = origin_stock - buy_count
-                new_sales = origin_sales + buy_count
-                sku.stock = new_stock
-                sku.sales = new_sales
-                sku.save()
-                spu = sku.spu
-                spu.sales += buy_count
-                spu.save()
+        with transaction.atomic():
+            save_point = transaction.savepoint()
 
-                OrderGoods.objects.create(
+            try:
+                order_model = OrderInfo.objects.create(
                     order_id=order_id,
-                    sku=sku,
-                    count=buy_count,
-                    price=sku.price
+                    user=user,
+                    address_id=address_id,
+                    total_count=0,
+                    total_amount=Decimal('0.00'),
+                    freight=Decimal('10.00'),
+                    pay_method=pay_method,
+                    status=status
                 )
-                order_model.total_count += buy_count
-                order_model.total_amount += (sku.price * buy_count)
-            order_model.total_amount += order_model.freight
-            order_model.save()
-        except Exception as e:
-            print(e)
+                redis_conn = get_redis_connection('carts')
+                redis_carts = redis_conn.hgetall('carts_%s' % user.id)
+                selected_ids = redis_conn.smembers('selected_%s' % user.id)
+                cart_dict = {}
+                for sku_id_bytes in selected_ids:
+                    cart_dict[int(sku_id_bytes)] = int(redis_carts[sku_id_bytes])
+                for sku_id in cart_dict:
+                    while True:
+                        sku = SKU.objects.get(id=sku_id)
+                        buy_count = cart_dict[sku_id]
+                        origin_stock = sku.stock
+                        origin_sales = sku.sales
+                        import time
+                        time.sleep(5)
+                        if buy_count > origin_stock:
+                            transaction.savepoint_rollback(save_point)
+
+                            return http.JsonResponse({'code': RETCODE.STOCKERR, 'errmsg': '库存不足'})
+                        new_stock = origin_stock - buy_count
+                        new_sales = origin_sales + buy_count
+                        resuat = SKU.objects.filter(id=sku_id, stock=origin_stock).update(stock=new_stock,
+                                                                                          sales=new_sales)
+                        if resuat == 0:
+                            continue
+
+                        # sku.stock = new_stock
+                        # sku.sales = new_sales
+                        # sku.save()
+                        spu = sku.spu
+                        spu.sales += buy_count
+                        spu.save()
+
+                        OrderGoods.objects.create(
+                            order_id=order_id,
+                            sku=sku,
+                            count=buy_count,
+                            price=sku.price
+                        )
+                        order_model.total_count += buy_count
+                        order_model.total_amount += (sku.price * buy_count)
+                        break
+                order_model.total_amount += order_model.freight
+                order_model.save()
+            except Exception as e:
+                print(e)
+                transaction.savepoint_rollback(save_point)
+                return http.JsonResponse({'code': RETCODE.OK, 'errmsg': "下单失败"})
+            else:
+                transaction.savepoint_commit(save_point)
+
         return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '下单成功', 'order_id': order_id})

@@ -202,11 +202,11 @@ class AddressView(LoginRequiredViews):
                 'tel': address_model.tel,
                 'email': address_model.email
             })
-            default_address_id = user.default_address_id
-            context = {
-                'addresses': addresses_list,
-                'default_address_id': default_address_id
-            }
+        default_address_id = user.default_address_id
+        context = {
+            'addresses': addresses_list,
+            'default_address_id': default_address_id
+        }
 
         return render(request, 'user_center_site.html', context)
 
