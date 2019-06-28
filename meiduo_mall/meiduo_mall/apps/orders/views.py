@@ -1,10 +1,15 @@
+import json
+from django.utils import timezone
 from decimal import Decimal
+from django import http
 from django.shortcuts import render
 from django_redis import get_redis_connection
 
 from meiduo_mall.utils.views import LoginRequiredViews
 from users.models import Address
 from goods.models import SKU
+from .models import OrderInfo, OrderGoods
+from meiduo_mall.utils.response_code import RETCODE
 
 
 class OrderSettlementView(LoginRequiredViews):
@@ -39,3 +44,72 @@ class OrderSettlementView(LoginRequiredViews):
             'payment_amount': total_amount + freight
         }
         return render(request, 'place_order.html', context)
+
+
+class OrderCommitView(LoginRequiredViews):
+    """提交订单"""
+
+    def post(self, request):
+        json_dict = json.loads(request.body.decode())
+        address_id = json_dict.get("address_id")
+        pay_method = json_dict.get("pay_method")
+        user = request.user
+        if all([address_id, pay_method]) is False:
+            return http.HttpResponseForbidden("缺少必传参数")
+        try:
+            address = Address.objects.get(user=user, id=address_id)
+        except Address.DoesNotExist:
+            return http.HttpResponseForbidden("address_id错误")
+        if pay_method not in OrderInfo.PAY_METHODS_ENUM.values():
+            return http.HttpResponseForbidden('支付方式有误')
+        order_id = timezone.now().strftime('%Y%m%d%H%M%S') + '%09d' % user.id
+        status = (OrderInfo.ORDER_STATUS_ENUM['UNPAID']
+                  if pay_method == OrderInfo.PAY_METHODS_ENUM['ALIPAY']
+                  else OrderInfo.ORDER_STATUS_ENUM['UNSEND'])
+        try:
+            order_model = OrderInfo.objects.create(
+                order_id=order_id,
+                user=user,
+                address_id=address_id,
+                total_count=0,
+                total_amount=Decimal('0.00'),
+                freight=Decimal('10.00'),
+                pay_method=pay_method,
+                status=status
+            )
+            redis_conn = get_redis_connection('carts')
+            redis_carts = redis_conn.hgetall('carts_%s' % user.id)
+            selected_ids = redis_conn.smembers('selected_%s' % user.id)
+            cart_dict = {}
+            for sku_id_bytes in selected_ids:
+                cart_dict[int(sku_id_bytes)] = int(redis_carts[sku_id_bytes])
+            for sku_id in cart_dict:
+                sku = SKU.objects.get(id=sku_id)
+                buy_count = cart_dict[sku_id]
+                origin_stock = sku.stock
+                origin_sales = sku.sales
+                if buy_count > origin_stock:
+
+                    return http.JsonResponse({'code': RETCODE.STOCKERR, 'errmsg': '库存不足'})
+                new_stock = origin_stock - buy_count
+                new_sales = origin_sales + buy_count
+                sku.stock = new_stock
+                sku.sales = new_sales
+                sku.save()
+                spu = sku.spu
+                spu.sales += buy_count
+                spu.save()
+
+                OrderGoods.objects.create(
+                    order_id=order_id,
+                    sku=sku,
+                    count=buy_count,
+                    price=sku.price
+                )
+                order_model.total_count += buy_count
+                order_model.total_amount += (sku.price * buy_count)
+            order_model.total_amount += order_model.freight
+            order_model.save()
+        except Exception as e:
+            print(e)
+        return http.JsonResponse({'code': RETCODE.OK, 'errmsg': '下单成功', 'order_id': order_id})
