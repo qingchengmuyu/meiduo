@@ -29,4 +29,6 @@ urlpatterns = [
     url(r'^', include('orders.urls', namespace='orders')),
     url(r'^', include('payment.urls', namespace='payment')),
 
+    url(r'^meiduo_admin/', include('meiduo_admin.urls', namespace='meiduo_admin')),
+
 ]

@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
 import os, sys
+import datetime
+from datetime import timedelta
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -42,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'haystack',  # 全文检索
+    'corsheaders',  # CORS 跨域
 
     'users.apps.UsersConfig',
     'oauth.apps.OauthConfig',
@@ -52,6 +55,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    # 'corsheaders.middleware.CorsMiddleware',  # CORS中间件必须放首位
+    'corsheaders.middleware.CorsMiddleware',
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -277,9 +283,32 @@ HAYSTACK_SIGNAL_PROCESSOR = 'haystack.signals.RealtimeSignalProcessor'
 
 HAYSTACK_SEARCH_RESULTS_PER_PAGE = 5
 
-
 # 支付宝
 ALIPAY_APPID = '2016101100662502'
 ALIPAY_DEBUG = True  # 表示是沙箱环境还是真实支付环境
 ALIPAY_URL = 'https://openapi.alipaydev.com/gateway.do'
 ALIPAY_RETURN_URL = 'http://www.meiduo.site:8000/payment/status/'
+
+CORS_ORIGIN_WHITELIST = [
+    "http://127.0.0.1:8080"
+]
+
+# CORS_ORIGIN_ALLOW_ALL = True
+
+CORS_ALLOW_CREDENTIALS = True  # 允许携带cookie
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_jwt.authentication.JSONWebTokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
+    ),
+}
+
+# datetime.datetime(year=2019, month=7, day=9, hour=11, minute=43, second=56) # 时间点对象
+# datetime.timedelta(days=10) 对像，代表十天（时间段）
+JWT_AUTH = {
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=10),  # token有效期为10天
+    'JWT_RESPONSE_PAYLOAD_HANDLER': 'meiduo_admin.jwt_response_handler.custome_jwt_response_payload_hander',
+    # 自定义函数构建最终jwt返回的结果：添加username和user_id
+}
