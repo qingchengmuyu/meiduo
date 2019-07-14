@@ -6,6 +6,7 @@ from .views.home_views import *
 from .views.user_views import UserViews
 from .views.sku_views import SKUViewSet
 from .views.spu_views import *
+from .views.specs_views import SpecsViews
 
 urlpatterns = [
     url(r'^authorizations/$', obtain_jwt_token),
@@ -16,6 +17,8 @@ urlpatterns = [
     url(r'^goods/(?P<pk>\d+)/specs/$', SKUViewSet.as_view({'get': 'specs'})),
     url(r'^goods/(?P<pk>\d+)/$', SPUViews.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
     url(r'^goods//specs/$', SKUViewSet.as_view({'get': 'list'})),
+    url(r'^goods/specs/$', SpecsViews.as_view({'get': 'list', 'post': 'create'})),
+    url(r'^goods/specs/(?P<pk>\d+)/$', SpecsViews.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
     url(r'^goods/$', SPUViews.as_view({'get': 'list', 'post': 'create'})),
     url(r'^goods/brands/simple/$', SPUViews.as_view({'get': 'brands'})),
     url(r'^goods/channel/categories/$', SPUViews.as_view({'get': 'categories'})),
