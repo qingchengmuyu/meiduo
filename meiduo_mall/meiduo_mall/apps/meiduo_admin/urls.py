@@ -14,6 +14,7 @@ urlpatterns = [
     url(r'^goods/simple/$', SKUViewSet.as_view({'get': 'simple'})),
     url(r'^goods/(?P<pk>\d+)/specs/$', SKUViewSet.as_view({'get': 'specs'})),
     url(r'^goods//specs/$', SKUViewSet.as_view({'get': 'list'})),
+    url(r'^skus/(?P<pk>\d+)/$', SKUViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
 ]
 
 router = SimpleRouter()

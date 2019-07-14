@@ -59,3 +59,6 @@ class SPUSpecSerializer(serializers.ModelSerializer):
             "spu_id",
             "options"
         ]
+
+
+
