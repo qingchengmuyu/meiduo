@@ -7,6 +7,7 @@ from .views.user_views import UserViews
 from .views.sku_views import SKUViewSet
 from .views.spu_views import *
 from .views.specs_views import SpecsViews
+from .views.option_views import OptionViews, SimpleViews
 
 urlpatterns = [
     url(r'^authorizations/$', obtain_jwt_token),
@@ -24,6 +25,9 @@ urlpatterns = [
     url(r'^goods/channel/categories/$', SPUViews.as_view({'get': 'categories'})),
     url(r'^goods/channel/categories/(?P<pk>\d+)/$', SPUViews.as_view({'get': 'categoriess'})),
     url(r'^skus/(?P<pk>\d+)/$', SKUViewSet.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
+    url(r'^specs/options/$', OptionViews.as_view({'get': 'list', 'post': 'create'})),
+    url(r'^specs/options/(?P<pk>\d+)/$', OptionViews.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
+    url(r'^goods/specs/simple/$', SimpleViews.as_view()),
 ]
 
 router = SimpleRouter()
