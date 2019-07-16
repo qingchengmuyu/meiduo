@@ -312,3 +312,6 @@ JWT_AUTH = {
     'JWT_RESPONSE_PAYLOAD_HANDLER': 'meiduo_admin.jwt_response_handler.custome_jwt_response_payload_hander',
     # 自定义函数构建最终jwt返回的结果：添加username和user_id
 }
+
+
+FDFS_CONFPATH = os.path.join(BASE_DIR, "utils/fastdfs/client.conf")
