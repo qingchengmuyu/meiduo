@@ -10,6 +10,7 @@ from .views.specs_views import SpecsViews
 from .views.option_views import OptionViews, SimpleViews
 from .views.channels_views import ChannelViews, ChannelGroupViews
 from .views.brand_views import BrandViews
+from .views.SKUimage_views import SKUImageViews, SKUSimpleViews
 
 urlpatterns = [
     url(r'^authorizations/$', obtain_jwt_token),
@@ -17,6 +18,7 @@ urlpatterns = [
     url(r'^skus/$', SKUViewSet.as_view({'get': 'list', 'post': 'create'})),
     url(r'^skus/categories/$', SKUViewSet.as_view({'get': 'categories'})),
     url(r'^goods/simple/$', SKUViewSet.as_view({'get': 'simple'})),
+    url(r'^skus/simple/$', SKUSimpleViews.as_view({'get': 'list'})),
     url(r'^goods/(?P<pk>\d+)/specs/$', SKUViewSet.as_view({'get': 'specs'})),
     url(r'^goods/(?P<pk>\d+)/$', SPUViews.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
     url(r'^goods//specs/$', SKUViewSet.as_view({'get': 'list'})),
@@ -36,6 +38,8 @@ urlpatterns = [
     url(r'^goods/channel_types/$', ChannelGroupViews.as_view()),
     url(r'^goods/brands/$', BrandViews.as_view({'get': 'list', 'post': 'create'})),
     url(r'^goods/brands/(?P<pk>\d+)/$', BrandViews.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
+    url(r'^skus/images/$', SKUImageViews.as_view({'get': 'list', 'post': 'create'})),
+    url(r'^skus/images/(?P<pk>\d+)/$', SKUImageViews.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
 ]
 
 router = SimpleRouter()
