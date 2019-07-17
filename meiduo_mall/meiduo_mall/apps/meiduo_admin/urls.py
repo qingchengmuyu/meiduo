@@ -11,6 +11,8 @@ from .views.option_views import OptionViews, SimpleViews
 from .views.channels_views import ChannelViews, ChannelGroupViews
 from .views.brand_views import BrandViews
 from .views.SKUimage_views import SKUImageViews, SKUSimpleViews
+from .views.order_views import OrderViews, OrderDetailViews
+
 
 urlpatterns = [
     url(r'^authorizations/$', obtain_jwt_token),
@@ -40,6 +42,9 @@ urlpatterns = [
     url(r'^goods/brands/(?P<pk>\d+)/$', BrandViews.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
     url(r'^skus/images/$', SKUImageViews.as_view({'get': 'list', 'post': 'create'})),
     url(r'^skus/images/(?P<pk>\d+)/$', SKUImageViews.as_view({'get': 'retrieve', 'put': 'update', 'delete': 'destroy'})),
+    url(r'^orders/(?P<pk>\d+)/$', OrderDetailViews.as_view()),
+    url(r'^orders/(?P<pk>\d+)/status/$', OrderDetailViews.as_view()),
+    url(r'^orders/$', OrderViews.as_view({'get': 'list'})),
 ]
 
 router = SimpleRouter()
