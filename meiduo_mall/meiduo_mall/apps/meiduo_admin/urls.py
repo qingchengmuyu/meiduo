@@ -12,6 +12,9 @@ from .views.channels_views import ChannelViews, ChannelGroupViews
 from .views.brand_views import BrandViews
 from .views.SKUimage_views import SKUImageViews, SKUSimpleViews
 from .views.order_views import OrderViews, OrderDetailViews
+from .views.perms_views import PermViews, ContentViews
+from .views.group_views import GroupViews, GroupSimpleViews
+from .views.admin_views import AdminViews,AdminSimpleViews
 
 
 urlpatterns = [
@@ -45,8 +48,14 @@ urlpatterns = [
     url(r'^orders/(?P<pk>\d+)/$', OrderDetailViews.as_view()),
     url(r'^orders/(?P<pk>\d+)/status/$', OrderDetailViews.as_view()),
     url(r'^orders/$', OrderViews.as_view({'get': 'list'})),
+    url(r'^permission/content_types/$', ContentViews.as_view()),
+    url(r'^permission/simple/$', GroupSimpleViews.as_view()),
+    url(r'^permission/groups/simple/$', AdminSimpleViews.as_view()),
 ]
 
 router = SimpleRouter()
 router.register(prefix='statistical', viewset=HomeViewSet, base_name='statistical')
+router.register(prefix='permission/perms', viewset=PermViews, base_name='PermViews')
+router.register(prefix='permission/groups', viewset=GroupViews, base_name='GroupViews')
+router.register(prefix='permission/admins', viewset=AdminViews, base_name='GroupViews')
 urlpatterns += router.urls
